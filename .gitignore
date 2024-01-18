@@ -6,3 +6,5 @@ test.py
 parse_video.py
 videos_raw/
 preprocess/
+model_cn
+model_cd

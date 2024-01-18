@@ -45,7 +45,7 @@ def main(args):
     # convert img to tensor
     img = Image.open(args.input_img)
     img = transforms.Resize(args.img_size)(img)
-    img = transforms.RandomCrop((args.img_size, args.img_size))(img)
+    img = transforms.RandomCrop((args.img_size, args.img_size))(img) # here is inference, so no need to random crop, size ramain the same
     x = transforms.ToTensor()(img)
     x = torch.unsqueeze(x, dim=0)
 

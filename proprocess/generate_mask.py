@@ -39,8 +39,9 @@ if __name__=='__main__':
     x0,y0,x1,y1,x2,y2,x3,y3,x4,y4 = tracked_lms_dict["Avatar1_pro_20231026"]
     point_list = [(x0,y0),(x1,y1),(x2,y2),(x3,y3),(x4,y4)]
     # img=draw_circle(cv2.imread('videos_raw/00028.jpg'), x0, y0)
-    img=draw_circle(img, x4, y4)
+    # img=draw_circle(img, x4, y4)
 
+    img=cv2.imread('videos_raw/00028.jpg')
     # crop image with a square
     img_crop=img[557:557+320,464:464+320,...] 
     cv2.imwrite('images/00028_crop.jpg', img_crop)

@@ -35,17 +35,19 @@ def draw_circle(image, x0, y0):
 
 def get_mask_new(
         shape,
-        point_list
+        point_list,
+        radius=20
 ):
     mask = torch.zeros(shape)
     x0,y0,x1,y1,x2,y2,x3,y3,x4,y4=point_list
-    
-
+    # make values around (x0,y0),(x4,y4) in the mask to be 1
+    mask[0,0,y0-radius:y0+radius,x0-radius:x0+radius]=1
 
     return mask
 
 
 if __name__=='__main__':
+    pass
     # tracked_lms_dict={
     #     "Avatar1_pro_20231026" : [503, 677, 566, 708, 636, 731, 708, 709, 748, 690]
     # }

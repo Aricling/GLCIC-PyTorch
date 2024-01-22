@@ -35,7 +35,7 @@ def main(args):
     # =============================================
     with open(args.config, 'r') as f:
         config = json.load(f)
-    mpv = torch.tensor(config['mpv']).view(1, 3, 1, 1)
+    mpv = torch.tensor(config['mpv']).view(1, 3, 1, 1) # what is this? "mpv": [0.5062325495504219, 0.4255871700324652, 0.38299278586700136]
     model = CompletionNetwork()
     model.load_state_dict(torch.load(args.model, map_location='cpu'))
 

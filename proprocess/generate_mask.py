@@ -4,6 +4,7 @@
 import cv2
 import numpy as np
 import os
+import torch
 
 # def generate_mask(image, point_list):
 #     # generate mask
@@ -32,21 +33,33 @@ def draw_circle(image, x0, y0):
     cv2.circle(image, (x0, y0), 20, (255, 255, 255), -1) # -1 means filled circle， 20 means radius not diameter
     return image
 
+def get_mask_new(
+        shape,
+        point_list
+):
+    mask = torch.zeros(shape)
+    x0,y0,x1,y1,x2,y2,x3,y3,x4,y4=point_list
+    
+
+
+    return mask
+
+
 if __name__=='__main__':
-    tracked_lms_dict={
-        "Avatar1_pro_20231026" : [503, 677, 566, 708, 636, 731, 708, 709, 748, 690]
-    }
-    x0,y0,x1,y1,x2,y2,x3,y3,x4,y4 = tracked_lms_dict["Avatar1_pro_20231026"]
-    point_list = [(x0,y0),(x1,y1),(x2,y2),(x3,y3),(x4,y4)]
-    # img=draw_circle(cv2.imread('videos_raw/00028.jpg'), x0, y0)
-    # img=draw_circle(img, x4, y4)
+    # tracked_lms_dict={
+    #     "Avatar1_pro_20231026" : [503, 677, 566, 708, 636, 731, 708, 709, 748, 690]
+    # }
+    # x0,y0,x1,y1,x2,y2,x3,y3,x4,y4 = tracked_lms_dict["Avatar1_pro_20231026"]
+    # point_list = [(x0,y0),(x1,y1),(x2,y2),(x3,y3),(x4,y4)]
+    # # img=draw_circle(cv2.imread('videos_raw/00028.jpg'), x0, y0)
+    # # img=draw_circle(img, x4, y4)
 
-    img=cv2.imread('videos_raw/00028.jpg')
-    # crop image with a square
-    img_crop=img[557:557+320,464:464+320,...] 
-    cv2.imwrite('images/00028_crop.jpg', img_crop)
+    # img=cv2.imread('videos_raw/00028.jpg')
+    # # crop image with a square
+    # img_crop=img[557:557+320,464:464+320,...] 
+    # cv2.imwrite('images/00028_crop.jpg', img_crop)
 
 
-    cv2.imshow('image', img_crop)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+    # cv2.imshow('image', img_crop)
+    # cv2.waitKey(0)
+    # cv2.destroyAllWindows()

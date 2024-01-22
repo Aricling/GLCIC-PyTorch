@@ -40,8 +40,11 @@ def get_mask_new(
 ):
     mask = torch.zeros(shape)
     x0,y0,x1,y1,x2,y2,x3,y3,x4,y4=point_list
-    # make values around (x0,y0),(x4,y4) in the mask to be 1
-    mask[0,0,y0-radius:y0+radius,x0-radius:x0+radius]=1
+    print(point_list)
+    # make values around (x0,y0) in the mask to be 1
+    mask[0,0,y0-radius:y0+radius,x0-radius:x0+radius]=1.0
+    # make values around (x4,y4) in the mask to be 1
+    mask[0,0,y4-radius:y4+radius,x4-radius:x4+radius]=1.0
 
     return mask
 

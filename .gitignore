@@ -8,3 +8,5 @@ videos_raw/
 preprocess/
 model_cn
 model_cd
+00028_crop_out.jpg
+assist/compile_statis.py

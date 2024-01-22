@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+from turtle import width
 import torch
 import torchvision.transforms as transforms
 from torchvision.utils import save_image
@@ -48,8 +49,9 @@ def main(args):
     # =============================================
     # convert img to tensor
     img = Image.open(args.input_img)
-    img = transforms.Resize(args.img_size)(img)
-    img = transforms.RandomCrop((args.img_size, args.img_size))(img) # here is inference, so no need to random crop, size ramain the same
+    width, height = img.size
+    img = transforms.Resize((height, width))(img)
+    # img = transforms.RandomCrop((args.img_size, args.img_size))(img) # here is inference, so no need to random crop, size ramain the same
     x = transforms.ToTensor()(img) # torch.Size([3,160,160]), normalize to [0,1]
     x = torch.unsqueeze(x, dim=0) # torch.Size([1,3,160,160])
 
@@ -65,8 +67,8 @@ def main(args):
     mask=get_mask_new(
         shape=(1, 1, x.shape[2], x.shape[3]),
         # point_list=[503, 677, 566, 708, 636, 731, 708, 709, 748, 690],
-        point_list=[int((x/300)*args.img_size) for x in [35, 128, 566, 708, 636, 731, 708, 709, 275, 126]],
-        radius=10
+        point_list=[503, 677, 566, 708, 636, 731, 708, 709, 748, 690],
+        radius=20
     ) # torch.Size([1,1,160,160])
 
     # inpaint

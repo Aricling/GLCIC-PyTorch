@@ -12,3 +12,6 @@ model_cd
 assist/compile_statis.py
 images/visualize_mask.png
 images/visualize.png
+concatted/output_images/*
+output_images/*
+output.mp4

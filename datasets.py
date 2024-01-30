@@ -3,14 +3,17 @@ import os
 import imghdr
 import torch.utils.data as data
 from PIL import Image
+import json
 
 
 class ImageDataset(data.Dataset):
-    def __init__(self, data_dir, transform=None, recursive_search=False):
+    def __init__(self, data_dir, transform=None, recursive_search=False, json_path=None):
         super(ImageDataset, self).__init__()
         self.data_dir = os.path.expanduser(data_dir)
         self.transform = transform
         self.imgpaths = self.__load_imgpaths_from_dir(self.data_dir, walk=recursive_search)
+        self.params_tracked_point=json.load(open(json_path))
+        print(self.params_tracked_point)
 
     def __len__(self):
         return len(self.imgpaths)

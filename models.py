@@ -77,7 +77,7 @@ class CompletionNetwork(nn.Module):
         # output_shape: (None, 3, img_h. img_w)
 
     def forward(self, x):
-        x = self.bn1(self.act1(self.conv1(x)))
+        x = self.bn1(self.act1(self.conv1(x))) # input:[1,4,230,394], output:[1,64,230,394]
         x = self.bn2(self.act2(self.conv2(x)))
         x = self.bn3(self.act3(self.conv3(x)))
         x = self.bn4(self.act4(self.conv4(x)))

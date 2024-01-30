@@ -47,6 +47,7 @@ parser.add_argument('--num_test_completions', type=int, default=16)
 parser.add_argument('--mpv', nargs=3, type=float, default=None)
 parser.add_argument('--alpha', type=float, default=4e-4)
 parser.add_argument('--arc', type=str, choices=['celeba', 'places2'], default='celeba')
+parser.add_argument('--json_path', type=str, default="/data/guoling/outfit_editing/FOM/save_avatar_params.json")
 
 
 def main(args):
@@ -74,11 +75,13 @@ def main(args):
     train_dset = ImageDataset(
         os.path.join(args.data_dir, 'train'),
         trnsfm,
-        recursive_search=args.recursive_search)
+        recursive_search=args.recursive_search,
+        json_path=args.json_path)
     test_dset = ImageDataset(
         os.path.join(args.data_dir, 'test'),
         trnsfm,
-        recursive_search=args.recursive_search)
+        recursive_search=args.recursive_search,
+        json_path=args.json_path)
     train_loader = DataLoader(
         train_dset,
         batch_size=(args.bsize // args.bdivs),
@@ -104,7 +107,7 @@ def main(args):
     mpv_json = []
     for i in range(3):
         mpv_json.append(float(mpv[i]))
-    args_dict = vars(args)
+    args_dict = vars(args) # return a dict
     args_dict['mpv'] = mpv_json
     with open(os.path.join(
             args.result_dir, 'config.json'),
@@ -140,7 +143,7 @@ def main(args):
         for x in train_loader:
             # forward
             x = x.to(gpu)
-            mask = gen_input_mask(
+            mask = gen_input_mask(  # here may be replaced
                 shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                 hole_size=(
                     (args.hole_min_w, args.hole_max_w),
@@ -156,7 +159,7 @@ def main(args):
             loss = completion_network_loss(x, output, mask)
 
             # backward
-            loss.backward()
+            loss.backward() # if you don't run step(), the gradient will accumulate
             cnt_bdivs += 1
             if cnt_bdivs >= args.bdivs:
                 cnt_bdivs = 0
@@ -174,7 +177,7 @@ def main(args):
                         x = sample_random_batch(
                             test_dset,
                             batch_size=args.num_test_completions).to(gpu)
-                        mask = gen_input_mask(
+                        mask = gen_input_mask(          # completed same as training
                             shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
                             hole_size=(
                                 (args.hole_min_w, args.hole_max_w),
@@ -229,7 +232,7 @@ def main(args):
         model_cd = DataParallel(model_cd)
     model_cd = model_cd.to(gpu)
     opt_cd = Adadelta(model_cd.parameters())
-    bceloss = BCELoss()
+    bceloss = BCELoss() # binary cross entropy loss
 
     # training
     cnt_bdivs = 0

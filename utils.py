@@ -143,7 +143,7 @@ def poisson_blend(input, output, mask):
         dstimg = np.array(dstimg)[:, :, [2, 1, 0]]
         srcimg = transforms.functional.to_pil_image(output[i])
         srcimg = np.array(srcimg)[:, :, [2, 1, 0]]
-        msk = transforms.functional.to_pil_image(mask[i])
+        msk = transforms.functional.to_pil_image(mask[i]) # the whole msk is total black...
         msk = np.array(msk)[:, :, [2, 1, 0]]
         # compute mask's center
         xs, ys = [], []

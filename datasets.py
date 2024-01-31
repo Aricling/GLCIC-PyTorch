@@ -7,20 +7,21 @@ import json
 
 
 class ImageDataset(data.Dataset):
-    def __init__(self, data_dir, transform=None, recursive_search=False, json_path=None):
+    def __init__(self, data_dir, transform=None, recursive_search=False, json_path=None, crop_box=None):
         super(ImageDataset, self).__init__()
         self.data_dir = os.path.expanduser(data_dir)
         self.transform = transform
         self.imgpaths = self.__load_imgpaths_from_dir(self.data_dir, walk=recursive_search)
         self.params_tracked_point=json.load(open(json_path))
-        print(self.params_tracked_point)
+        # print(self.params_tracked_point)
+        self.crop_box=crop_box
 
     def __len__(self):
         return len(self.imgpaths)
 
     def __getitem__(self, index, color_format='RGB'):
         img = Image.open(self.imgpaths[index])
-        img = img.convert(color_format)
+        img = img.convert(color_format).crop(self.crop_box)
         if self.transform is not None:
             img = self.transform(img)
         return img

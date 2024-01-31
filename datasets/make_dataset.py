@@ -12,13 +12,15 @@ parser.add_argument('--split', type=float, default=0.8)
 
 
 def main(args):
+    print('data_dir: %s' % args.data_dir)
     args.data_dir = os.path.expanduser(args.data_dir)
+    print('data_dir: %s' % args.data_dir)
 
     print('loading dataset...')
     src_paths = []
     for file in os.listdir(args.data_dir):
         path = os.path.join(args.data_dir, file)
-        if imghdr.what(path) == None:
+        if imghdr.what(path) == None: # if the file is not an image file
             continue
         src_paths.append(path)
     random.shuffle(src_paths)

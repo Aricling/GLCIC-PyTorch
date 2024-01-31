@@ -12,7 +12,7 @@ from models import CompletionNetwork
 from utils import poisson_blend
 
 
-from proprocess.generate_mask import get_mask_new, define_crop_box
+from preprocess.generate_mask import get_mask_new, define_crop_box
 
 parser = argparse.ArgumentParser()
 parser.add_argument('model')

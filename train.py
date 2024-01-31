@@ -12,6 +12,7 @@ import numpy as np
 from tqdm import tqdm
 from models import CompletionNetwork, ContextDiscriminator
 from datasets import ImageDataset
+import ast
 from losses import completion_network_loss
 from utils import (
     gen_input_mask,
@@ -20,14 +21,16 @@ from utils import (
     sample_random_batch,
     poisson_blend,
 )
+from preprocess.generate_mask import get_mask_new, define_crop_box
+from torch.utils.tensorboard import SummaryWriter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('data_dir')
 parser.add_argument('result_dir')
 parser.add_argument('--data_parallel', action='store_true')
 parser.add_argument('--recursive_search', action='store_true', default=False)
-parser.add_argument('--init_model_cn', type=str, default=None)
-parser.add_argument('--init_model_cd', type=str, default=None)
+parser.add_argument('--init_model_cn', type=str, default="model_cn")
+parser.add_argument('--init_model_cd', type=str, default="model_cd")
 parser.add_argument('--steps_1', type=int, default=90000)
 parser.add_argument('--steps_2', type=int, default=10000)
 parser.add_argument('--steps_3', type=int, default=400000)
@@ -41,20 +44,24 @@ parser.add_argument('--hole_min_h', type=int, default=48)
 parser.add_argument('--hole_max_h', type=int, default=96)
 parser.add_argument('--cn_input_size', type=int, default=160)
 parser.add_argument('--ld_input_size', type=int, default=96)
-parser.add_argument('--bsize', type=int, default=16)
+parser.add_argument('--bsize', type=int, default=96)
 parser.add_argument('--bdivs', type=int, default=1)
 parser.add_argument('--num_test_completions', type=int, default=16)
-parser.add_argument('--mpv', nargs=3, type=float, default=None)
+parser.add_argument('--mpv', nargs=3, type=float, default=(0.12028006540991372, 0.46286404672081555, 0.24308040714570064))
 parser.add_argument('--alpha', type=float, default=4e-4)
 parser.add_argument('--arc', type=str, choices=['celeba', 'places2'], default='celeba')
 parser.add_argument('--json_path', type=str, default="/data/guoling/outfit_editing/FOM/save_avatar_params.json")
+parser.add_argument('--merge_point_list', type=lambda x: ast.literal_eval(x), default="[503, 677, 566, 708, 636, 731, 708, 709, 748, 690]")
 
 
 def main(args):
+    # intialize tensorboard
+    writer = SummaryWriter('results/tensorboard')
     # ================================================
     # Preparation
     # ================================================
     if not torch.cuda.is_available():
+
         raise Exception('At least one gpu must be available.')
     gpu = torch.device('cuda:0')
 
@@ -65,10 +72,13 @@ def main(args):
         if not os.path.exists(os.path.join(args.result_dir, phase)):
             os.makedirs(os.path.join(args.result_dir, phase))
 
+    # calculate crop box and merge point
+    crop_box, new_merge_point_list=define_crop_box(args.merge_point_list)
+
     # load dataset
     trnsfm = transforms.Compose([
-        transforms.Resize(args.cn_input_size),
-        transforms.RandomCrop((args.cn_input_size, args.cn_input_size)),
+        # transforms.Resize(args.cn_input_size),
+        # transforms.RandomCrop((args.cn_input_size, args.cn_input_size)),
         transforms.ToTensor(),
     ])
     print('loading dataset... (it may take a few minutes)')
@@ -76,12 +86,14 @@ def main(args):
         os.path.join(args.data_dir, 'train'),
         trnsfm,
         recursive_search=args.recursive_search,
-        json_path=args.json_path)
+        json_path=args.json_path,
+        crop_box=crop_box)
     test_dset = ImageDataset(
         os.path.join(args.data_dir, 'test'),
         trnsfm,
         recursive_search=args.recursive_search,
-        json_path=args.json_path)
+        json_path=args.json_path,
+        crop_box=crop_box)
     train_loader = DataLoader(
         train_dset,
         batch_size=(args.bsize // args.bdivs),
@@ -102,13 +114,14 @@ def main(args):
         pbar.close()
     else:
         mpv = np.array(args.mpv)
+        print(mpv)
 
     # save training config
     mpv_json = []
     for i in range(3):
         mpv_json.append(float(mpv[i]))
     args_dict = vars(args) # return a dict
-    args_dict['mpv'] = mpv_json
+    args_dict['mpv'] = mpv_json # add mpv to args_dict
     with open(os.path.join(
             args.result_dir, 'config.json'),
             mode='w') as f:
@@ -143,20 +156,26 @@ def main(args):
         for x in train_loader:
             # forward
             x = x.to(gpu)
-            mask = gen_input_mask(  # here may be replaced
+            # mask = gen_input_mask(  # here may be replaced
+            #     shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+            #     hole_size=(
+            #         (args.hole_min_w, args.hole_max_w),
+            #         (args.hole_min_h, args.hole_max_h)),
+            #     hole_area=gen_hole_area(
+            #         (args.ld_input_size, args.ld_input_size),
+            #         (x.shape[3], x.shape[2])),
+            #     max_holes=args.max_holes,
+            # ).to(gpu)
+            mask=get_mask_new(
                 shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                hole_size=(
-                    (args.hole_min_w, args.hole_max_w),
-                    (args.hole_min_h, args.hole_max_h)),
-                hole_area=gen_hole_area(
-                    (args.ld_input_size, args.ld_input_size),
-                    (x.shape[3], x.shape[2])),
-                max_holes=args.max_holes,
+                point_list=new_merge_point_list,
+                radius=20               
             ).to(gpu)
             x_mask = x - x * mask + mpv * mask
             input = torch.cat((x_mask, mask), dim=1)
             output = model_cn(input)
             loss = completion_network_loss(x, output, mask)
+            writer.add_scalar('loss of completion network/train', loss, pbar.n)
 
             # backward
             loss.backward() # if you don't run step(), the gradient will accumulate
@@ -177,18 +196,25 @@ def main(args):
                         x = sample_random_batch(
                             test_dset,
                             batch_size=args.num_test_completions).to(gpu)
-                        mask = gen_input_mask(          # completed same as training
+                        # mask = gen_input_mask(          # completed same as training
+                        #     shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
+                        #     hole_size=(
+                        #         (args.hole_min_w, args.hole_max_w),
+                        #         (args.hole_min_h, args.hole_max_h)),
+                        #     hole_area=gen_hole_area(
+                        #         (args.ld_input_size, args.ld_input_size),
+                        #         (x.shape[3], x.shape[2])),
+                        #     max_holes=args.max_holes).to(gpu)
+                        mask=get_mask_new(
                             shape=(x.shape[0], 1, x.shape[2], x.shape[3]),
-                            hole_size=(
-                                (args.hole_min_w, args.hole_max_w),
-                                (args.hole_min_h, args.hole_max_h)),
-                            hole_area=gen_hole_area(
-                                (args.ld_input_size, args.ld_input_size),
-                                (x.shape[3], x.shape[2])),
-                            max_holes=args.max_holes).to(gpu)
+                            point_list=new_merge_point_list,
+                            radius=20               
+                        ).to(gpu)
                         x_mask = x - x * mask + mpv * mask
                         input = torch.cat((x_mask, mask), dim=1)
                         output = model_cn(input)
+                        loss = completion_network_loss(x, output, mask)
+                        writer.add_scalar('loss of completion network/test', loss, pbar.n)
                         completed = poisson_blend(x_mask, output, mask)
                         imgs = torch.cat((
                             x.cpu(),
@@ -215,7 +241,7 @@ def main(args):
                 if pbar.n >= args.steps_1:
                     break
     pbar.close()
-
+    '''
     # ================================================
     # Training Phase 2
     # ================================================
@@ -463,6 +489,7 @@ def main(args):
                 if pbar.n >= args.steps_3:
                     break
     pbar.close()
+    '''
 
 
 if __name__ == '__main__':
